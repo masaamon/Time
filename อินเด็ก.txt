@@ -1,0 +1,500 @@
+```html
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Group Schedule</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                        serif: ['Noto Serif Thai', 'serif'],
+                    },
+                    colors: {
+                        muji: {
+                            bg: '#fbfaf8',       
+                            card: '#ffffff',     
+                            ink: '#5c4f41',      
+                            muted: '#9e9185',    
+                            accent: '#d4b895',   
+                            surface: '#f4f1ea',  
+                            line: '#d6cfc4',     
+                            classBg: '#e9e4d6',  
+                            busyBg: '#fbebc3',   
+                            busyText: '#8a6c2c', 
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 40px -10px rgba(92, 79, 65, 0.08)',
+                        'block': '0 2px 8px rgba(138, 108, 44, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #fbfaf8;
+            color: #5c4f41;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+        }
+
+        .smooth-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .smooth-scroll::-webkit-scrollbar-track { background: transparent; }
+        .smooth-scroll::-webkit-scrollbar-thumb { background-color: #d6cfc4; border-radius: 10px; }
+        .smooth-scroll::-webkit-scrollbar-thumb:hover { background-color: #c2b5a3; }
+
+        .modal-enter { animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .modal-overlay-enter { animation: overlayFadeIn 0.25s ease-out forwards; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(15px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes overlayFadeIn { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(3px); } }
+
+        .minimal-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239e9185' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.2em 1.2em;
+        }
+        
+        .grid-cell { box-sizing: border-box; }
+        .class-block-hover:hover { filter: brightness(0.95); }
+    </style>
+</head>
+<body class="antialiased min-h-screen p-4 md:p-8 text-[15px]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const MEMBERS = [
+            { id: "pong", name: "พงศิริกุล หาญชนะ", short: "พงศิริกุล" },
+            { id: "panat", name: "ปนัดดา จ้อยหว่าง", short: "ปนัดดา" },
+            { id: "chani", name: "ชนิกานต์ ทรงกลด", short: "ชนิกานต์" }
+        ];
+
+        const DAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์"];
+        const START_HOUR = 8;
+        const END_HOUR = 20; 
+        const TOTAL_HOURS = END_HOUR - START_HOUR;
+        const HOURS_ARRAY = Array.from({ length: TOTAL_HOURS }, (_, i) => START_HOUR + i);
+
+        // --- ข้อมูลตารางเรียนเป๊ะ 100% อัปเดตล่าสุด ---
+        const CLASSES = [
+            // วันจันทร์
+            { day: "จันทร์", s: 9, e: 12, room: "B1138", code: "ENG32 4314", members: ["panat", "chani", "pong"] },
+            { day: "จันทร์", s: 13, e: 15, room: "สัมมนาวิศวพัฒน์2", code: "ENG32 4412", members: ["panat", "chani"] },
+            { day: "จันทร์", s: 13, e: 16, room: "B1208", code: "IST30 1104", members: ["pong"] },
+            { day: "จันทร์", s: 17, e: 18.5, room: "B1120", code: "IST30", members: ["panat"] },
+            
+            // วันอังคาร
+            { day: "อังคาร", s: 8, e: 10, room: "B3101", code: "ENG30 2001", members: ["pong"] },
+            { day: "อังคาร", s: 13, e: 15, room: "B1125", code: "ENG32 4315", members: ["panat", "chani", "pong"] },
+            { day: "อังคาร", s: 17, e: 19, room: "B1135", code: "IST30", members: ["chani"] },
+            
+            // วันพุธ
+            { day: "พุธ", s: 10, e: 12, room: "B1212", code: "ENG32 4313", members: ["panat"] },
+            { day: "พุธ", s: 13, e: 15, room: "B1119", code: "ENG32 4412", members: ["panat", "chani"] },
+            { day: "พุธ", s: 17, e: 18.5, room: "B1120", code: "IST30", members: ["panat"] },
+            
+            // วันพฤหัสบดี
+            { day: "พฤหัสบดี", s: 8, e: 10, room: "B3101", code: "ENG30 2001", members: ["pong"] },
+            { day: "พฤหัสบดี", s: 10, e: 12, room: "B1135", code: "ENG32 4313", members: ["panat"] },
+            { day: "พฤหัสบดี", s: 16, e: 19, room: "B4101", code: "CW101 4100", members: ["panat"] },
+            { day: "พฤหัสบดี", s: 17, e: 18, room: "B1125", code: "IST30", members: ["chani"] },
+            
+            // วันศุกร์
+            { day: "ศุกร์", s: 10, e: 12, room: "B1117", code: "ENG32 4315", members: ["panat", "chani", "pong"] }
+        ];
+
+        const formatTime = (h) => {
+            const hrs = Math.floor(h);
+            const mins = (h % 1) * 60;
+            return `${hrs.toString().padStart(2, '0')}:${mins === 0 ? '00' : '30'}`;
+        };
+
+        function App() {
+            const [busytimes, setBusytimes] = useState([]);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [modalData, setModalData] = useState({ day: DAYS[0], person: MEMBERS[0].id, start: 8, end: 9, note: '' });
+            const [errorMsg, setErrorMsg] = useState('');
+            const [cancelTarget, setCancelTarget] = useState(null);
+            const [classModalData, setClassModalData] = useState(null);
+
+            const isOverlappingClass = (day, start, end) => {
+                return CLASSES.some(c => c.day === day && ((start >= c.s && start < c.e) || (end > c.s && end <= c.e) || (start <= c.s && end >= c.e)));
+            };
+
+            const handleCellClick = (day, hour) => {
+                if (isOverlappingClass(day, hour, hour + 0.5)) return;
+                setModalData({ ...modalData, day: day, start: hour, end: hour + 1, note: '' });
+                setErrorMsg('');
+                setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+                e.preventDefault();
+                setErrorMsg('');
+                if (Number(modalData.start) >= Number(modalData.end)) { setErrorMsg("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้นค่ะ"); return; }
+                if (isOverlappingClass(modalData.day, Number(modalData.start), Number(modalData.end))) { setErrorMsg("เวลานี้ซ้อนทับกับเวลาเรียน ลองเปลี่ยนเวลาดูนะคะ"); return; }
+                
+                const newBusy = { id: Date.now().toString(), person: modalData.person, day: modalData.day, s: Number(modalData.start), e: Number(modalData.end), note: modalData.note };
+                setBusytimes([...busytimes, newBusy]);
+                setIsModalOpen(false);
+            };
+
+            // อัลกอริทึมตัดแบ่งช่วงเวลาเรียนอัตโนมัติ (Time Segmentation)
+            const getSegmentedClasses = (day) => {
+                const dayClasses = CLASSES.filter(c => c.day === day);
+                if (dayClasses.length === 0) return [];
+
+                let timePoints = new Set();
+                dayClasses.forEach(c => { timePoints.add(c.s); timePoints.add(c.e); });
+                let sortedPoints = Array.from(timePoints).sort((a, b) => a - b);
+
+                let segments = [];
+                for (let i = 0; i < sortedPoints.length - 1; i++) {
+                    let s = sortedPoints[i];
+                    let e = sortedPoints[i+1];
+                    let activeClasses = dayClasses.filter(c => c.s <= s && c.e >= e);
+                    if (activeClasses.length > 0) {
+                        segments.push({ s, e, classes: activeClasses, day });
+                    }
+                }
+                return segments;
+            };
+
+            const getBlockStyle = (start, end) => {
+                const left = ((start - START_HOUR) / TOTAL_HOURS) * 100;
+                const width = ((end - start) / TOTAL_HOURS) * 100;
+                return { left: `${left}%`, width: `${width}%` };
+            };
+
+            const timeOptions = Array.from({length: TOTAL_HOURS * 2 + 1}, (_, i) => START_HOUR + (i * 0.5));
+
+            return (
+                <div className="max-w-7xl mx-auto pb-12">
+                    <div className="mb-10 text-center pt-4">
+                        <h1 className="text-3xl md:text-4xl font-serif text-muji-ink mb-2">ตารางนัดหมายและเช็คเวลาเรียน</h1>
+                        <p className="text-muji-muted">
+                            คลิกที่ <strong>บล็อกเวลาเรียน</strong> เพื่อดูห้องเรียน หรือเลือก <strong>ช่องว่าง</strong> เพื่อลงเวลาติดธุระ
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col xl:flex-row gap-8 items-start">
+                        {/* ซ้าย: ตาราง */}
+                        <div className="w-full xl:w-3/4">
+                            <div className="bg-white rounded-3xl shadow-soft p-3 sm:p-6 border border-muji-line/30">
+                                <div className="flex items-center justify-between px-2 mb-5">
+                                    <div className="flex gap-5 text-[13px] font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3.5 h-3.5 rounded bg-muji-classBg border border-[#d4cbb8]"></div>
+                                            <span className="text-muji-muted">เวลาเรียน (คลิกดูห้องได้)</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3.5 h-3.5 rounded bg-muji-busyBg border border-[#e6d0a1]"></div>
+                                            <span className="text-muji-muted">ติดธุระ (ไม่ว่าง)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="smooth-scroll overflow-x-auto pb-4">
+                                    <div className="min-w-[850px] pr-2">
+                                        
+                                        {/* หัวตารางไม้บรรทัด */}
+                                        <div className="relative mb-2 ml-[90px] h-6">
+                                            {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i).map(h => (
+                                                <div key={h} className="absolute flex flex-col items-center -translate-x-1/2 bottom-0" 
+                                                     style={{ left: `${((h - START_HOUR) / TOTAL_HOURS) * 100}%` }}>
+                                                    <span className="text-[12px] font-semibold text-muji-muted mb-1">{h}:00</span>
+                                                    <div className="w-[1.5px] h-2 bg-muji-line/80"></div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="space-y-3.5">
+                                            {DAYS.map((day) => (
+                                                <div key={day} className="flex items-stretch h-[72px] group/row">
+                                                    <div className="w-[80px] shrink-0 flex items-center justify-center font-serif text-muji-ink bg-muji-surface rounded-2xl mr-[10px] border border-muji-line/50">
+                                                        {day}
+                                                    </div>
+                                                    
+                                                    <div className="flex-1 relative flex bg-[#fdfcfb] rounded-2xl overflow-hidden border border-muji-line shadow-inner">
+                                                        {/* ขีดเส้นกริดให้คลิกได้ */}
+                                                        {HOURS_ARRAY.map((h, i) => (
+                                                            <div key={h} onClick={() => handleCellClick(day, h)}
+                                                                 className={`flex-1 border-r border-muji-line/70 cursor-pointer hover:bg-muji-surface/60 transition-colors relative grid-cell ${i === HOURS_ARRAY.length - 1 ? 'border-r-0' : ''}`}>
+                                                            </div>
+                                                        ))}
+
+                                                        {/* แสดงเวลาเรียน */}
+                                                        {getSegmentedClasses(day).map((seg, i) => {
+                                                            const isMulti = seg.classes.length > 1;
+                                                            const isAllMembers = !isMulti && seg.classes[0].members.length === MEMBERS.length;
+
+                                                            return (
+                                                                <div key={`class-seg-${i}`} 
+                                                                     onClick={(e) => { e.stopPropagation(); setClassModalData(seg); }}
+                                                                     className={`absolute inset-y-0 bg-muji-classBg text-muji-ink px-3 py-1.5 flex flex-col justify-center cursor-pointer z-10 border-l-[1.5px] border-r border-[#d4cbb8] shadow-sm class-block-hover overflow-hidden`}
+                                                                     style={getBlockStyle(seg.s, seg.e)}>
+                                                                    
+                                                                    {isMulti ? (
+                                                                        <div className="text-center w-full">
+                                                                            <div className="font-bold text-[12px] truncate text-[#8a5b4c] flex items-center justify-center gap-1">
+                                                                                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                                                                <span className="truncate">เวลาตรงกัน</span>
+                                                                            </div>
+                                                                            <div className="text-[10px] text-muji-muted truncate mt-0.5 w-full">คลิกดูห้องเรียน</div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <>
+                                                                            <div className="flex items-center gap-1 w-full">
+                                                                                {isAllMembers ? 
+                                                                                    <span className="shrink-0 flex"><svg className="w-3 h-3 text-muji-ink" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg></span>
+                                                                                    : <span className="shrink-0 flex"><svg className="w-3 h-3 text-muji-muted" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"></path></svg></span>
+                                                                                }
+                                                                                <div className="font-semibold text-[13px] truncate">{seg.classes[0].code}</div>
+                                                                            </div>
+                                                                            <div className="text-[11px] text-muji-muted truncate ml-[18px]">{seg.classes[0].room}</div>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+
+                                                        {/* แสดงเวลาติดธุระ */}
+                                                        {busytimes.filter(b => b.day === day).map(b => {
+                                                            const member = MEMBERS.find(m => m.id === b.person);
+                                                            return (
+                                                                <div key={b.id} onClick={(e) => { e.stopPropagation(); setCancelTarget(b); }}
+                                                                     className="absolute inset-y-0 bg-muji-busyBg text-muji-busyText px-4 py-2 flex flex-col justify-center z-20 shadow-block cursor-pointer hover:brightness-95 transition-all group/block border-l-2 border-[#d6ba78]"
+                                                                     style={getBlockStyle(b.s, b.e)}>
+                                                                    <div className="font-semibold text-[13px] truncate w-full flex justify-between items-center">
+                                                                        {member?.name.split(' ')[0]}
+                                                                        <svg className="w-3.5 h-3.5 opacity-0 group-hover/block:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                                    </div>
+                                                                    <div className="text-[11px] opacity-90 truncate w-full mt-0.5">{b.note || 'ติดธุระ'}</div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ขวา: รายการสรุป */}
+                        <div className="w-full xl:w-1/4">
+                            <div className="bg-white rounded-3xl shadow-soft p-5 sm:p-6 h-full min-h-[400px] border border-muji-line/30">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-muji-line/50">
+                                    <h2 className="font-serif text-xl text-muji-ink">สรุปรายการติดธุระ</h2>
+                                    <span className="bg-muji-surface text-muji-ink text-[12px] px-2.5 py-1 rounded-full">{busytimes.length}</span>
+                                </div>
+                                <div className="space-y-5 overflow-y-auto smooth-scroll max-h-[500px] pr-2">
+                                    {DAYS.map(day => {
+                                        const dayBusys = busytimes.filter(b => b.day === day).sort((a,b) => a.s - b.s);
+                                        if (dayBusys.length === 0) return null;
+                                        return (
+                                            <div key={`list-${day}`}>
+                                                <h3 className="text-[13px] font-semibold text-muji-muted mb-2.5">{day}</h3>
+                                                <div className="space-y-2.5">
+                                                    {dayBusys.map(b => {
+                                                        const member = MEMBERS.find(m => m.id === b.person);
+                                                        return (
+                                                            <div key={b.id} onClick={(e) => setCancelTarget(b)}
+                                                                 className="bg-muji-bg rounded-xl p-3 cursor-pointer hover:bg-muji-busyBg/30 transition-colors border border-muji-line/40">
+                                                                <div className="font-medium text-muji-ink text-[14px]">{member?.name}</div>
+                                                                <div className="text-[12.5px] text-muji-muted mt-0.5">{formatTime(b.s)} – {formatTime(b.e)}</div>
+                                                                {b.note && <div className="text-[11.5px] text-muji-busyText bg-muji-busyBg/60 rounded px-2 py-1 mt-2 inline-block">{b.note}</div>}
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {busytimes.length === 0 && (
+                                        <div className="text-center text-muji-muted text-[14px] py-16 flex flex-col items-center">
+                                            <svg className="w-10 h-10 mb-3 text-muji-line" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                                            ยังไม่มีคนลงชื่อติดธุระ
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Modal 1: ป๊อปอัปตรวจสอบเวลาเรียน */}
+                    {classModalData && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/20 modal-overlay-enter backdrop-blur-sm" onClick={() => setClassModalData(null)}>
+                            <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[420px] p-6 modal-enter relative border border-muji-line/30" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setClassModalData(null)} className="absolute top-4 right-4 text-muji-muted hover:text-muji-ink bg-muji-surface rounded-full p-1.5 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                
+                                <div className="mb-5 flex items-center gap-3 border-b border-muji-line/40 pb-3">
+                                    <div className="w-10 h-10 rounded-full bg-muji-classBg text-muji-ink flex items-center justify-center border border-[#d4cbb8]">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h2 className="font-serif text-xl text-muji-ink">ข้อมูลตารางเรียน</h2>
+                                        <p className="text-[13px] text-muji-muted">วัน{classModalData.day} ({formatTime(classModalData.s)} - {formatTime(classModalData.e)} น.)</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 max-h-[60vh] overflow-y-auto smooth-scroll pr-1">
+                                    {classModalData.classes.length === 1 && classModalData.classes[0].members.length === MEMBERS.length ? (
+                                        <div className="bg-[#f0f7f2] rounded-xl p-4 border border-[#cce6d3] text-center">
+                                            <div className="inline-flex bg-green-500 text-white text-[12px] font-bold px-3 py-1 rounded-full mb-3 shadow-sm">
+                                                เรียนพร้อมกันทั้ง 3 คน ✅
+                                            </div>
+                                            <div className="font-bold text-lg text-muji-ink mb-1">{classModalData.classes[0].code}</div>
+                                            <div className="text-sm text-[#4b6a52] flex items-center justify-center gap-1.5 font-medium">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                ห้อง {classModalData.classes[0].room}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div className="text-[13px] font-semibold text-muji-muted mb-3 flex items-center gap-2">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                รายชื่อและสถานที่เรียน
+                                            </div>
+                                            <div className="space-y-3">
+                                                {classModalData.classes.map((c, idx) => {
+                                                    const isTogether = c.members.length > 1;
+                                                    return (
+                                                        <div key={idx} className="bg-muji-surface/50 rounded-xl p-3 border border-muji-line/40 flex flex-col gap-2">
+                                                            <div className="flex gap-2 flex-wrap items-center">
+                                                                {c.members.map(m => {
+                                                                    const member = MEMBERS.find(x => x.id === m);
+                                                                    return <span key={m} className="bg-white border border-muji-line/60 shadow-sm px-2.5 py-1 rounded-md text-[12.5px] font-medium text-muji-ink">{member.short}</span>
+                                                                })}
+                                                                {isTogether && <span className="text-[11px] text-green-600 bg-green-100 px-2 py-0.5 rounded font-bold ml-1">เรียนด้วยกัน ✅</span>}
+                                                            </div>
+                                                            <div className="flex items-center justify-between mt-1 px-2 bg-white/60 rounded-lg py-2 border border-white">
+                                                                <span className="font-bold text-[13px] text-[#8a5b4c]">{c.code}</span>
+                                                                <span className="text-[12.5px] text-muji-muted flex items-center gap-1 font-medium">
+                                                                    <svg className="w-3.5 h-3.5 text-[#8a5b4c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                                                                    {c.room}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal 2: ป๊อปอัปเพิ่มเวลาติดธุระ */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/10 modal-overlay-enter backdrop-blur-sm">
+                            <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[420px] p-6 sm:p-8 modal-enter relative border border-muji-line/30">
+                                <button onClick={() => setIsModalOpen(false)} className="absolute top-5 right-5 text-muji-muted hover:text-muji-ink bg-muji-surface rounded-full p-1.5 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                <div className="mb-6">
+                                    <h2 className="font-serif text-2xl text-muji-ink mb-1">ลงเวลาติดธุระ</h2>
+                                    <p className="text-muji-muted text-sm">ระบุช่วงเวลาที่คุณไม่ว่าง</p>
+                                </div>
+                                <form onSubmit={handleSave} className="space-y-4">
+                                    {errorMsg && <div className="text-[13px] text-red-600 bg-red-50/80 p-3 rounded-xl flex items-start gap-2">{errorMsg}</div>}
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">ชื่อของคุณ</label>
+                                        <select value={modalData.person} onChange={e => setModalData({...modalData, person: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input transition-shadow">
+                                            {MEMBERS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">วัน</label>
+                                            <div className="w-full bg-muji-surface/50 text-muji-muted rounded-xl px-4 py-3 cursor-not-allowed">{modalData.day}</div>
+                                        </div>
+                                        <div className="flex-[2] flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">ตั้งแต่</label>
+                                                <select value={modalData.start} onChange={e => setModalData({...modalData, start: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input">
+                                                    {timeOptions.slice(0, -1).map(t => <option key={`s-${t}`} value={t}>{formatTime(t)}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">ถึง</label>
+                                                <select value={modalData.end} onChange={e => setModalData({...modalData, end: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input">
+                                                    {timeOptions.slice(1).map(t => <option key={`e-${t}`} value={t}>{formatTime(t)}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">รายละเอียด (ถ้ามี)</label>
+                                        <input type="text" value={modalData.note} onChange={e => setModalData({...modalData, note: e.target.value})} placeholder="เช่น นัดอาจารย์..." className="w-full bg-muji-surface text-muji-ink rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 transition-shadow placeholder:text-muji-muted/60" />
+                                    </div>
+                                    <div className="pt-3 flex gap-3">
+                                        <button type="button" onClick={() => setIsModalOpen(false)} className="flex-[1] text-muji-ink bg-transparent hover:bg-muji-surface rounded-xl py-3 font-medium transition-colors">ยกเลิก</button>
+                                        <button type="submit" className="flex-[2] text-white bg-muji-ink hover:bg-[#4a3f35] rounded-xl py-3 font-medium transition-colors shadow-soft">บันทึกเวลา</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal 3: ป๊อปอัปยกเลิกเวลา */}
+                    {cancelTarget && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/10 modal-overlay-enter backdrop-blur-sm">
+                            <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[340px] p-6 text-center modal-enter relative border border-muji-line/30">
+                                <div className="w-12 h-12 bg-red-50 text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </div>
+                                <h3 className="font-serif text-xl text-muji-ink mb-2">ยกเลิกเวลานี้ใช่ไหม?</h3>
+                                <p className="text-[14px] text-muji-muted mb-6">
+                                    คุณต้องการลบเวลาติดธุระของ <strong className="text-muji-ink font-semibold">{MEMBERS.find(m => m.id === cancelTarget.person)?.name.split(' ')[0]}</strong><br/>
+                                    ช่วง {formatTime(cancelTarget.s)} - {formatTime(cancelTarget.e)} น.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button onClick={() => setCancelTarget(null)} className="flex-1 text-muji-ink bg-muji-surface hover:bg-muji-line/50 rounded-xl py-2.5 font-medium transition-colors">ปิด</button>
+                                    <button onClick={() => { setBusytimes(busytimes.filter(b => b.id !== cancelTarget.id)); setCancelTarget(null); }} className="flex-1 text-white bg-red-500 hover:bg-red-600 rounded-xl py-2.5 font-medium transition-colors shadow-soft">ยืนยันการลบ</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
+
+
+```
