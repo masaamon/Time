@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,20 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minimal Group Schedule</title>
     
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
@@ -57,17 +52,14 @@
             color: #5c4f41;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
         }
-
         .smooth-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
         .smooth-scroll::-webkit-scrollbar-track { background: transparent; }
         .smooth-scroll::-webkit-scrollbar-thumb { background-color: #d6cfc4; border-radius: 10px; }
         .smooth-scroll::-webkit-scrollbar-thumb:hover { background-color: #c2b5a3; }
-
         .modal-enter { animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .modal-overlay-enter { animation: overlayFadeIn 0.25s ease-out forwards; }
         @keyframes modalFadeIn { from { opacity: 0; transform: translateY(15px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
         @keyframes overlayFadeIn { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(3px); } }
-
         .minimal-input {
             appearance: none;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239e9185' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -75,7 +67,6 @@
             background-repeat: no-repeat;
             background-size: 1.2em 1.2em;
         }
-        
         .grid-cell { box-sizing: border-box; }
         .class-block-hover:hover { filter: brightness(0.95); }
     </style>
@@ -83,8 +74,34 @@
 <body class="antialiased min-h-screen p-4 md:p-8 text-[15px]">
     <div id="root"></div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // คอนฟิกจากโปรเจกต์ของคุณ
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8kWrPcg_EjLwstBq1r5jEhzJdNYLij6o",
+            authDomain: "dom-day.firebaseapp.com",
+            projectId: "dom-day",
+            storageBucket: "dom-day.firebasestorage.app",
+            messagingSenderId: "633778930906",
+            appId: "1:633778930906:web:9cdd7591099135d2af11e3"
+        };
+
+        // เริ่มต้นใช้งาน Firebase และส่งออกไปให้ React ใช้
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        window.firebaseDB = db;
+        window.fbCollection = collection;
+        window.fbOnSnapshot = onSnapshot;
+        window.fbAddDoc = addDoc;
+        window.fbDeleteDoc = deleteDoc;
+        window.fbDoc = doc;
+    </script>
+
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         const MEMBERS = [
             { id: "pong", name: "พงศิริกุล หาญชนะ", short: "พงศิริกุล" },
@@ -98,31 +115,21 @@
         const TOTAL_HOURS = END_HOUR - START_HOUR;
         const HOURS_ARRAY = Array.from({ length: TOTAL_HOURS }, (_, i) => START_HOUR + i);
 
-        // --- ข้อมูลตารางเรียนเป๊ะ 100% อัปเดตล่าสุด ---
         const CLASSES = [
-            // วันจันทร์
             { day: "จันทร์", s: 9, e: 12, room: "B1138", code: "ENG32 4314", members: ["panat", "chani", "pong"] },
             { day: "จันทร์", s: 13, e: 15, room: "สัมมนาวิศวพัฒน์2", code: "ENG32 4412", members: ["panat", "chani"] },
             { day: "จันทร์", s: 13, e: 16, room: "B1208", code: "IST30 1104", members: ["pong"] },
             { day: "จันทร์", s: 17, e: 18.5, room: "B1120", code: "IST30", members: ["panat"] },
-            
-            // วันอังคาร
             { day: "อังคาร", s: 8, e: 10, room: "B3101", code: "ENG30 2001", members: ["pong"] },
             { day: "อังคาร", s: 13, e: 15, room: "B1125", code: "ENG32 4315", members: ["panat", "chani", "pong"] },
             { day: "อังคาร", s: 17, e: 19, room: "B1135", code: "IST30", members: ["chani"] },
-            
-            // วันพุธ
             { day: "พุธ", s: 10, e: 12, room: "B1212", code: "ENG32 4313", members: ["panat"] },
             { day: "พุธ", s: 13, e: 15, room: "B1119", code: "ENG32 4412", members: ["panat", "chani"] },
             { day: "พุธ", s: 17, e: 18.5, room: "B1120", code: "IST30", members: ["panat"] },
-            
-            // วันพฤหัสบดี
             { day: "พฤหัสบดี", s: 8, e: 10, room: "B3101", code: "ENG30 2001", members: ["pong"] },
             { day: "พฤหัสบดี", s: 10, e: 12, room: "B1135", code: "ENG32 4313", members: ["panat"] },
             { day: "พฤหัสบดี", s: 16, e: 19, room: "B4101", code: "CW101 4100", members: ["panat"] },
             { day: "พฤหัสบดี", s: 17, e: 18, room: "B1125", code: "IST30", members: ["chani"] },
-            
-            // วันศุกร์
             { day: "ศุกร์", s: 10, e: 12, room: "B1117", code: "ENG32 4315", members: ["panat", "chani", "pong"] }
         ];
 
@@ -139,6 +146,30 @@
             const [errorMsg, setErrorMsg] = useState('');
             const [cancelTarget, setCancelTarget] = useState(null);
             const [classModalData, setClassModalData] = useState(null);
+            const [isLoading, setIsLoading] = useState(true);
+
+            // 1. ดึงข้อมูลจาก Firebase แบบ Real-time
+            useEffect(() => {
+                // รอให้ Firebase พร้อมทำงาน
+                const checkFirebase = setInterval(() => {
+                    if (window.firebaseDB) {
+                        clearInterval(checkFirebase);
+                        
+                        // สร้าง Connection ดึงข้อมูล
+                        const q = window.fbCollection(window.firebaseDB, "busytimes");
+                        const unsubscribe = window.fbOnSnapshot(q, (snapshot) => {
+                            const times = snapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            setBusytimes(times);
+                            setIsLoading(false);
+                        });
+
+                        return () => unsubscribe();
+                    }
+                }, 100);
+            }, []);
 
             const isOverlappingClass = (day, start, end) => {
                 return CLASSES.some(c => c.day === day && ((start >= c.s && start < c.e) || (end > c.s && end <= c.e) || (start <= c.s && end >= c.e)));
@@ -151,18 +182,35 @@
                 setIsModalOpen(true);
             };
 
-            const handleSave = (e) => {
+            // 2. บันทึกข้อมูลลง Firebase
+            const handleSave = async (e) => {
                 e.preventDefault();
                 setErrorMsg('');
                 if (Number(modalData.start) >= Number(modalData.end)) { setErrorMsg("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้นค่ะ"); return; }
                 if (isOverlappingClass(modalData.day, Number(modalData.start), Number(modalData.end))) { setErrorMsg("เวลานี้ซ้อนทับกับเวลาเรียน ลองเปลี่ยนเวลาดูนะคะ"); return; }
                 
-                const newBusy = { id: Date.now().toString(), person: modalData.person, day: modalData.day, s: Number(modalData.start), e: Number(modalData.end), note: modalData.note };
-                setBusytimes([...busytimes, newBusy]);
-                setIsModalOpen(false);
+                const newBusy = { person: modalData.person, day: modalData.day, s: Number(modalData.start), e: Number(modalData.end), note: modalData.note };
+                
+                try {
+                    await window.fbAddDoc(window.fbCollection(window.firebaseDB, "busytimes"), newBusy);
+                    setIsModalOpen(false);
+                } catch (error) {
+                    setErrorMsg("บันทึกไม่สำเร็จ ตรวจสอบการตั้งค่าฐานข้อมูลครับ");
+                    console.error(error);
+                }
             };
 
-            // อัลกอริทึมตัดแบ่งช่วงเวลาเรียนอัตโนมัติ (Time Segmentation)
+            // 3. ลบข้อมูลจาก Firebase
+            const handleDelete = async () => {
+                if(!cancelTarget) return;
+                try {
+                    await window.fbDeleteDoc(window.fbDoc(window.firebaseDB, "busytimes", cancelTarget.id));
+                    setCancelTarget(null);
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+
             const getSegmentedClasses = (day) => {
                 const dayClasses = CLASSES.filter(c => c.day === day);
                 if (dayClasses.length === 0) return [];
@@ -190,6 +238,10 @@
             };
 
             const timeOptions = Array.from({length: TOTAL_HOURS * 2 + 1}, (_, i) => START_HOUR + (i * 0.5));
+
+            if(isLoading) {
+                return <div className="min-h-screen flex items-center justify-center text-muji-muted font-serif text-xl">กำลังโหลดข้อมูลตารางเวลา...</div>
+            }
 
             return (
                 <div className="max-w-7xl mx-auto pb-12">
@@ -220,7 +272,6 @@
                                 <div className="smooth-scroll overflow-x-auto pb-4">
                                     <div className="min-w-[850px] pr-2">
                                         
-                                        {/* หัวตารางไม้บรรทัด */}
                                         <div className="relative mb-2 ml-[90px] h-6">
                                             {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i).map(h => (
                                                 <div key={h} className="absolute flex flex-col items-center -translate-x-1/2 bottom-0" 
@@ -239,18 +290,15 @@
                                                     </div>
                                                     
                                                     <div className="flex-1 relative flex bg-[#fdfcfb] rounded-2xl overflow-hidden border border-muji-line shadow-inner">
-                                                        {/* ขีดเส้นกริดให้คลิกได้ */}
                                                         {HOURS_ARRAY.map((h, i) => (
                                                             <div key={h} onClick={() => handleCellClick(day, h)}
                                                                  className={`flex-1 border-r border-muji-line/70 cursor-pointer hover:bg-muji-surface/60 transition-colors relative grid-cell ${i === HOURS_ARRAY.length - 1 ? 'border-r-0' : ''}`}>
                                                             </div>
                                                         ))}
 
-                                                        {/* แสดงเวลาเรียน */}
                                                         {getSegmentedClasses(day).map((seg, i) => {
                                                             const isMulti = seg.classes.length > 1;
                                                             const isAllMembers = !isMulti && seg.classes[0].members.length === MEMBERS.length;
-
                                                             return (
                                                                 <div key={`class-seg-${i}`} 
                                                                      onClick={(e) => { e.stopPropagation(); setClassModalData(seg); }}
@@ -281,7 +329,6 @@
                                                             )
                                                         })}
 
-                                                        {/* แสดงเวลาติดธุระ */}
                                                         {busytimes.filter(b => b.day === day).map(b => {
                                                             const member = MEMBERS.find(m => m.id === b.person);
                                                             return (
@@ -346,7 +393,6 @@
                         </div>
                     </div>
 
-                    {/* Modal 1: ป๊อปอัปตรวจสอบเวลาเรียน */}
                     {classModalData && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/20 modal-overlay-enter backdrop-blur-sm" onClick={() => setClassModalData(null)}>
                             <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[420px] p-6 modal-enter relative border border-muji-line/30" onClick={e => e.stopPropagation()}>
@@ -412,7 +458,6 @@
                         </div>
                     )}
 
-                    {/* Modal 2: ป๊อปอัปเพิ่มเวลาติดธุระ */}
                     {isModalOpen && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/10 modal-overlay-enter backdrop-blur-sm">
                             <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[420px] p-6 sm:p-8 modal-enter relative border border-muji-line/30">
@@ -464,7 +509,6 @@
                         </div>
                     )}
 
-                    {/* Modal 3: ป๊อปอัปยกเลิกเวลา */}
                     {cancelTarget && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muji-ink/10 modal-overlay-enter backdrop-blur-sm">
                             <div className="bg-white rounded-[24px] shadow-xl w-full max-w-[340px] p-6 text-center modal-enter relative border border-muji-line/30">
@@ -478,7 +522,7 @@
                                 </p>
                                 <div className="flex gap-3">
                                     <button onClick={() => setCancelTarget(null)} className="flex-1 text-muji-ink bg-muji-surface hover:bg-muji-line/50 rounded-xl py-2.5 font-medium transition-colors">ปิด</button>
-                                    <button onClick={() => { setBusytimes(busytimes.filter(b => b.id !== cancelTarget.id)); setCancelTarget(null); }} className="flex-1 text-white bg-red-500 hover:bg-red-600 rounded-xl py-2.5 font-medium transition-colors shadow-soft">ยืนยันการลบ</button>
+                                    <button onClick={handleDelete} className="flex-1 text-white bg-red-500 hover:bg-red-600 rounded-xl py-2.5 font-medium transition-colors shadow-soft">ยืนยันการลบ</button>
                                 </div>
                             </div>
                         </div>
@@ -493,8 +537,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-```
