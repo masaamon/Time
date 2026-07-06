@@ -1,9 +1,10 @@
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Group Schedule</title>
+    <title>Minimal Group Schedule & Lab Inventory</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +41,7 @@
                     boxShadow: {
                         'soft': '0 10px 40px -10px rgba(92, 79, 65, 0.08)',
                         'block': '0 2px 8px rgba(138, 108, 44, 0.15)',
+                        'nav': '0 -4px 20px rgba(92, 79, 65, 0.05)'
                     }
                 }
             }
@@ -69,16 +71,18 @@
         }
         .grid-cell { box-sizing: border-box; }
         .class-block-hover:hover { filter: brightness(0.95); }
+        
+        .toggle-checkbox:checked { right: 0; border-color: #5c4f41; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #5c4f41; }
     </style>
 </head>
-<body class="antialiased min-h-screen p-4 md:p-8 text-[15px]">
+<body class="antialiased min-h-screen text-[15px] pb-24">
     <div id="root"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // คอนฟิกจากโปรเจกต์ของคุณ
         const firebaseConfig = {
             apiKey: "AIzaSyD8kWrPcg_EjLwstBq1r5jEhzJdNYLij6o",
             authDomain: "dom-day.firebaseapp.com",
@@ -88,7 +92,6 @@
             appId: "1:633778930906:web:9cdd7591099135d2af11e3"
         };
 
-        // เริ่มต้นใช้งาน Firebase และส่งออกไปให้ React ใช้
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
@@ -102,6 +105,49 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        const LAB_ITEMS = [
+            { id: "ITM-001", name: "ตู้เก็บอุปกรณ์", category: "เฟอร์นิเจอร์", size: "-", unit: "ตู้", qty: 2, location: "ห้องแลป", date: "5/14/2026" },
+            { id: "ITM-007", name: "เตาอบ", category: "เฟอร์นิเจอร์", size: "-", unit: "เครื่อง", qty: 1, location: "ห้องแลป", date: "6/2/2026" },
+            { id: "ITM-008", name: "เตาเผา (Muffle Furnace)", category: "เครื่องมือ", size: "-", unit: "เครื่อง", qty: 1, location: "ห้องแลป", date: "5/14/2026" },
+            { id: "ITM-009", name: "เตาเผาแบบท่อ (Tube Furnace)", category: "เครื่องมือ", size: "-", unit: "เครื่อง", qty: 1, location: "ห้องแลป", date: "5/14/2026" },
+            { id: "ITM-010", name: "ที่คีบ (Forceps)", category: "เครื่องมือ", size: "-", unit: "อัน", qty: 1, location: "ตู้A", date: "6/2/2026" },
+            { id: "ITM-011", name: "ถาดอะลูมิเนียม", category: "อุปกรณ์", size: "-", unit: "อัน", qty: 2, location: "A", date: "6/2/2026" },
+            { id: "ITM-012", name: "ถุงมือกันความร้อน", category: "อุปกรณ์ป้องกัน", size: "-", unit: "คู่", qty: 2, location: "B", date: "5/14/2026" },
+            { id: "ITM-013", name: "ช้อนตักสาร", category: "เครื่องมือ", size: "-", unit: "อัน", qty: 4, location: "ตู้ A", date: "5/14/2026" },
+            { id: "ITM-014", name: "Magnetic bar", category: "เครื่องมือ", size: "-", unit: "ชุด", qty: 2, location: "A", date: "6/2/2026" },
+            { id: "ITM-015", name: "Magnetic stirrer", category: "เครื่องแก้ว", size: "-", unit: "อัน", qty: 6, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-016", name: "แท่งแก้วคนสาร", category: "เครื่องแก้ว", size: "-", unit: "อัน", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-017", name: "โกร่งบดยา", category: "เครื่องมือ", size: "9 นิ้ว", unit: "อัน", qty: 1, location: "B", date: "5/14/2026" },
+            { id: "ITM-019", name: "ลูกยางพร้อม tip", category: "อุปกรณ์", size: "-", unit: "อัน", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-020", name: "ขวดน้ำกลั่น", category: "เครื่องแก้ว", size: "-", unit: "ขวด", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-021", name: "Measuring Cylinder 100 mL", category: "เครื่องแก้ว", size: "100 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-021A", name: "Measuring Cylinder 10 mL", category: "เครื่องแก้ว", size: "10 mL", unit: "อัน", qty: 2, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-021B", name: "Measuring Cylinder 500 mL", category: "เครื่องแก้ว", size: "500 mL", unit: "อัน", qty: 2, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-023", name: "ขวดปรับปริมาตร 50 mL", category: "เครื่องแก้ว", size: "50 mL", unit: "อัน", qty: 1, location: "A", date: "5/15/2026" },
+            { id: "ITM-024", name: "ขวดปรับปริมาตร 100 mL", category: "เครื่องแก้ว", size: "100 mL", unit: "อัน", qty: 4, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-025", name: "ขวดปรับปริมาตร 125 mL", category: "เครื่องแก้ว", size: "125 mL", unit: "อัน", qty: 4, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-026", name: "ขวดปรับปริมาตร 250 mL", category: "เครื่องแก้ว", size: "250 mL", unit: "อัน", qty: 4, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-027", name: "ขวดปรับปริมาตร 500 mL", category: "เครื่องแก้ว", size: "500 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-028", name: "ขวดปรับปริมาตร 1000 mL", category: "เครื่องแก้ว", size: "1000 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-030", name: "Beaker 50 mL", category: "เครื่องแก้ว", size: "50 mL", unit: "ใบ", qty: "-", location: "A", date: "5/14/2026" },
+            { id: "ITM-031", name: "Beaker 100 mL", category: "เครื่องแก้ว", size: "100 mL", unit: "ใบ", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-032", name: "Beaker 500 mL", category: "เครื่องแก้ว", size: "500 mL", unit: "ใบ", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-033", name: "Beaker 1000 mL", category: "เครื่องแก้ว", size: "1000 mL", unit: "ใบ", qty: 4, location: "A", date: "5/14/2026" },
+            { id: "ITM-034", name: "Beaker 25 mL", category: "เครื่องแก้ว", size: "25 mL", unit: "ใบ", qty: 4, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-035", name: "Measuring Pipet 1 mL", category: "เครื่องแก้ว", size: "1 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-036", name: "Measuring Pipet 5 mL", category: "เครื่องแก้ว", size: "5 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-037", name: "Measuring Pipet 10 mL", category: "เครื่องแก้ว", size: "10 mL", unit: "อัน", qty: 2, location: "ตู้A", date: "5/14/2026" },
+            { id: "ITM-038", name: "Volume Pipet 20 mL", category: "เครื่องแก้ว", size: "20 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-039", name: "Volume Pipet 50 mL", category: "เครื่องแก้ว", size: "50 mL", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-040", name: "Erlenmeyer flask 250 mL", category: "เครื่องแก้ว", size: "250 mL", unit: "ใบ", qty: 20, location: "A", date: "6/2/2026" },
+            { id: "ITM-041", name: "Erlenmeyer flask (ฝาเกลียว) 250 mL", category: "เครื่องแก้ว", size: "250 mL", unit: "ใบ", qty: 20, location: "A", date: "6/2/2026" },
+            { id: "ITM-042", name: "หลอดทดลอง", category: "เครื่องแก้ว", size: "-", unit: "หลอด", qty: 10, location: "A", date: "6/2/2026" },
+            { id: "ITM-043", name: "ตะแกรงใส่หลอดทดลอง", category: "อุปกรณ์", size: "-", unit: "อัน", qty: 2, location: "A", date: "5/14/2026" },
+            { id: "ITM-044", name: "กรวยแก้ว (Funnel)", category: "เครื่องแก้ว", size: "-", unit: "อัน", qty: 2, location: "A", date: "6/2/2026" },
+            { id: "ITM-045", name: "เครื่อง Spectrophotometer", category: "เครื่องมือ", size: "-", unit: "เครื่อง", qty: 1, location: "ห้องแลป", date: "5/14/2026" },
+            { id: "ITM-046", name: "pH Meter", category: "เครื่องมือ", size: "-", unit: "เครื่อง", qty: 1, location: "ห้องแลป", date: "5/14/2026" }
+        ];
 
         const MEMBERS = [
             { id: "pong", name: "พงศิริกุล หาญชนะ", short: "พงศิริกุล" },
@@ -140,6 +186,7 @@
         };
 
         function App() {
+            const [activeTab, setActiveTab] = useState('schedule');
             const [busytimes, setBusytimes] = useState([]);
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [modalData, setModalData] = useState({ day: DAYS[0], person: MEMBERS[0].id, start: 8, end: 9, note: '' });
@@ -147,15 +194,22 @@
             const [cancelTarget, setCancelTarget] = useState(null);
             const [classModalData, setClassModalData] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
+            
+            // ใช้ LocalStorage บันทึกสถานะกันหายเวลารีเฟรช
+            const [inventoryStatus, setInventoryStatus] = useState(() => {
+                const saved = localStorage.getItem('labInventoryStatus');
+                return saved ? JSON.parse(saved) : {};
+            });
 
-            // 1. ดึงข้อมูลจาก Firebase แบบ Real-time
+            // บันทึกลง LocalStorage เมื่อมีการเปลี่ยนแปลงสถานะไอเทม
             useEffect(() => {
-                // รอให้ Firebase พร้อมทำงาน
+                localStorage.setItem('labInventoryStatus', JSON.stringify(inventoryStatus));
+            }, [inventoryStatus]);
+
+            useEffect(() => {
                 const checkFirebase = setInterval(() => {
                     if (window.firebaseDB) {
                         clearInterval(checkFirebase);
-                        
-                        // สร้าง Connection ดึงข้อมูล
                         const q = window.fbCollection(window.firebaseDB, "busytimes");
                         const unsubscribe = window.fbOnSnapshot(q, (snapshot) => {
                             const times = snapshot.docs.map(doc => ({
@@ -165,34 +219,82 @@
                             setBusytimes(times);
                             setIsLoading(false);
                         });
-
                         return () => unsubscribe();
                     }
                 }, 100);
             }, []);
 
-            const isOverlappingClass = (day, start, end) => {
-                return CLASSES.some(c => c.day === day && ((start >= c.s && start < c.e) || (end > c.s && end <= c.e) || (start <= c.s && end >= c.e)));
-            };
-
             const handleCellClick = (day, hour) => {
-                if (isOverlappingClass(day, hour, hour + 0.5)) return;
                 setModalData({ ...modalData, day: day, start: hour, end: hour + 1, note: '' });
                 setErrorMsg('');
                 setIsModalOpen(true);
             };
 
-            // 2. บันทึกข้อมูลลง Firebase
+            // แก้บั๊กเวลาเริ่มต้น หากผู้ใช้เลือกเวลาเริ่ม > เวลาสิ้นสุด ให้ปัดเวลาสิ้นสุดขึ้นอัตโนมัติ
+            const handleStartChange = (e) => {
+                const newStart = Number(e.target.value);
+                let newEnd = Number(modalData.end);
+                if (newStart >= newEnd) {
+                    newEnd = newStart + 0.5;
+                }
+                setModalData({ ...modalData, start: newStart, end: newEnd });
+            };
+
             const handleSave = async (e) => {
                 e.preventDefault();
                 setErrorMsg('');
-                if (Number(modalData.start) >= Number(modalData.end)) { setErrorMsg("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้นค่ะ"); return; }
-                if (isOverlappingClass(modalData.day, Number(modalData.start), Number(modalData.end))) { setErrorMsg("เวลานี้ซ้อนทับกับเวลาเรียน ลองเปลี่ยนเวลาดูนะคะ"); return; }
                 
-                const newBusy = { person: modalData.person, day: modalData.day, s: Number(modalData.start), e: Number(modalData.end), note: modalData.note };
+                let reqStart = Number(modalData.start);
+                let reqEnd = Number(modalData.end);
+
+                if (reqStart >= reqEnd) { 
+                    setErrorMsg("เวลาสิ้นสุดต้องมากกว่าเวลาเริ่มต้นค่ะ"); 
+                    return; 
+                }
                 
+                // 1. ดึงตารางเรียนเฉพาะวันนั้นมาเพื่อใช้เทียบหาช่องว่าง
+                const dayClasses = CLASSES.filter(c => c.day === modalData.day);
+
+                // 2. ลอจิกหั่นเวลา (ข้ามช่วงที่มีเรียน)
+                let segments = [{ s: reqStart, e: reqEnd }];
+
+                dayClasses.forEach(c => {
+                    let newSegments = [];
+                    segments.forEach(seg => {
+                        // ถ้าเวลาไม่ทับซ้อนกันเลย ให้เก็บช่วงเวลานี้ไว้เหมือนเดิม
+                        if (c.e <= seg.s || c.s >= seg.e) {
+                            newSegments.push(seg);
+                        } else {
+                            // ถ้าทับซ้อน ให้แบ่งช่วงเวลาโดยตัดเวลาเรียนออก
+                            if (seg.s < c.s) {
+                                newSegments.push({ s: seg.s, e: c.s });
+                            }
+                            if (c.e < seg.e) {
+                                newSegments.push({ s: c.e, e: seg.e });
+                            }
+                        }
+                    });
+                    segments = newSegments;
+                });
+
+                // หากเวลาที่เลือก ตรงกับเวลาเรียน 100% (ไม่มีเวลาว่างเหลือให้ลง)
+                if (segments.length === 0) {
+                    setErrorMsg("ช่วงเวลาที่เลือกมีตารางเรียนเต็มหมดแล้วครับ ไม่สามารถลงเวลาได้");
+                    return;
+                }
+
                 try {
-                    await window.fbAddDoc(window.fbCollection(window.firebaseDB, "busytimes"), newBusy);
+                    // เซฟเวลาแต่ละก้อนที่หั่นแล้วแยกกัน
+                    for (let seg of segments) {
+                        const newBusy = { 
+                            person: modalData.person, 
+                            day: modalData.day, 
+                            s: seg.s, 
+                            e: seg.e, 
+                            note: modalData.note 
+                        };
+                        await window.fbAddDoc(window.fbCollection(window.firebaseDB, "busytimes"), newBusy);
+                    }
                     setIsModalOpen(false);
                 } catch (error) {
                     setErrorMsg("บันทึกไม่สำเร็จ ตรวจสอบการตั้งค่าฐานข้อมูลครับ");
@@ -200,7 +302,6 @@
                 }
             };
 
-            // 3. ลบข้อมูลจาก Firebase
             const handleDelete = async () => {
                 if(!cancelTarget) return;
                 try {
@@ -211,14 +312,43 @@
                 }
             };
 
+            const toggleItemStatus = (id) => {
+                setInventoryStatus(prev => ({
+                    ...prev,
+                    [id]: !prev[id]
+                }));
+            };
+
+            const checkedCount = Object.values(inventoryStatus).filter(Boolean).length;
+            const isAllChecked = checkedCount === LAB_ITEMS.length;
+
+            // ฟังก์ชันสำหรับกดเลือกทั้งหมด หรือยกเลิกทั้งหมด
+            const toggleAllItems = () => {
+                const newStatus = {};
+                LAB_ITEMS.forEach(item => {
+                    newStatus[item.id] = !isAllChecked;
+                });
+                setInventoryStatus(newStatus);
+            };
+
+            const getStatusLabel = (day, time, isEnd = false) => {
+                const checkTime = isEnd ? time - 0.5 : time;
+                const hasClass = CLASSES.some(c => c.day === day && checkTime >= c.s && checkTime < c.e);
+                const hasBusy = busytimes.some(b => b.day === day && checkTime >= b.s && checkTime < b.e);
+                
+                let labels = [];
+                if (hasClass) labels.push("มีเรียน");
+                if (hasBusy) labels.push("มีธุระแล้ว");
+                
+                return labels.length > 0 ? ` (${labels.join(', ')})` : '';
+            };
+
             const getSegmentedClasses = (day) => {
                 const dayClasses = CLASSES.filter(c => c.day === day);
                 if (dayClasses.length === 0) return [];
-
                 let timePoints = new Set();
                 dayClasses.forEach(c => { timePoints.add(c.s); timePoints.add(c.e); });
                 let sortedPoints = Array.from(timePoints).sort((a, b) => a - b);
-
                 let segments = [];
                 for (let i = 0; i < sortedPoints.length - 1; i++) {
                     let s = sortedPoints[i];
@@ -240,38 +370,42 @@
             const timeOptions = Array.from({length: TOTAL_HOURS * 2 + 1}, (_, i) => START_HOUR + (i * 0.5));
 
             if(isLoading) {
-                return <div className="min-h-screen flex items-center justify-center text-muji-muted font-serif text-xl">กำลังโหลดข้อมูลตารางเวลา...</div>
+                return <div className="min-h-screen flex items-center justify-center text-muji-muted font-serif text-xl">กำลังโหลดข้อมูล...</div>
             }
 
             return (
-                <div className="max-w-7xl mx-auto pb-12">
+                <div className="max-w-7xl mx-auto p-4 md:p-8">
+                    
                     <div className="mb-10 text-center pt-4">
-                        <h1 className="text-3xl md:text-4xl font-serif text-muji-ink mb-2">ตารางนัดหมายและเช็คเวลาเรียน</h1>
+                        <h1 className="text-3xl md:text-4xl font-serif text-muji-ink mb-2">
+                            {activeTab === 'schedule' ? 'ตารางนัดหมายและเช็คเวลาเรียน' : 'รายการตรวจสอบอุปกรณ์ห้องแลป'}
+                        </h1>
                         <p className="text-muji-muted">
-                            คลิกที่ <strong>บล็อกเวลาเรียน</strong> เพื่อดูห้องเรียน หรือเลือก <strong>ช่องว่าง</strong> เพื่อลงเวลาติดธุระ
+                            {activeTab === 'schedule' 
+                                ? 'คลิกที่ตารางเพื่อลงเวลาติดธุระ (ระบบจะข้ามเวลาที่มีเรียนให้อัตโนมัติ)'
+                                : `มีอุปกรณ์ทั้งหมด ${LAB_ITEMS.length} รายการ (ตรวจสอบแล้ว ${checkedCount}/${LAB_ITEMS.length})`
+                            }
                         </p>
                     </div>
 
-                    <div className="flex flex-col xl:flex-row gap-8 items-start">
-                        {/* ซ้าย: ตาราง */}
-                        <div className="w-full xl:w-3/4">
+                    <div className="w-full transition-all duration-300">
+                        {activeTab === 'schedule' && (
                             <div className="bg-white rounded-3xl shadow-soft p-3 sm:p-6 border border-muji-line/30">
-                                <div className="flex items-center justify-between px-2 mb-5">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 mb-5 gap-3">
                                     <div className="flex gap-5 text-[13px] font-medium">
                                         <div className="flex items-center gap-2">
                                             <div className="w-3.5 h-3.5 rounded bg-muji-classBg border border-[#d4cbb8]"></div>
-                                            <span className="text-muji-muted">เวลาเรียน (คลิกดูห้องได้)</span>
+                                            <span className="text-muji-muted">เวลาเรียน (ฟิกซ์)</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="w-3.5 h-3.5 rounded bg-muji-busyBg border border-[#e6d0a1]"></div>
-                                            <span className="text-muji-muted">ติดธุระ (ไม่ว่าง)</span>
+                                            <span className="text-muji-muted">ติดธุระ (คลิกเพื่อลบ)</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="smooth-scroll overflow-x-auto pb-4">
                                     <div className="min-w-[850px] pr-2">
-                                        
                                         <div className="relative mb-2 ml-[90px] h-6">
                                             {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i).map(h => (
                                                 <div key={h} className="absolute flex flex-col items-center -translate-x-1/2 bottom-0" 
@@ -284,15 +418,15 @@
 
                                         <div className="space-y-3.5">
                                             {DAYS.map((day) => (
-                                                <div key={day} className="flex items-stretch h-[72px] group/row">
-                                                    <div className="w-[80px] shrink-0 flex items-center justify-center font-serif text-muji-ink bg-muji-surface rounded-2xl mr-[10px] border border-muji-line/50">
+                                                <div key={day} className="flex items-stretch h-[72px] group/row relative">
+                                                    <div className="w-[80px] shrink-0 flex items-center justify-center font-serif text-muji-ink bg-muji-surface rounded-2xl mr-[10px] border border-muji-line/50 z-30 relative">
                                                         {day}
                                                     </div>
                                                     
                                                     <div className="flex-1 relative flex bg-[#fdfcfb] rounded-2xl overflow-hidden border border-muji-line shadow-inner">
                                                         {HOURS_ARRAY.map((h, i) => (
                                                             <div key={h} onClick={() => handleCellClick(day, h)}
-                                                                 className={`flex-1 border-r border-muji-line/70 cursor-pointer hover:bg-muji-surface/60 transition-colors relative grid-cell ${i === HOURS_ARRAY.length - 1 ? 'border-r-0' : ''}`}>
+                                                                 className={`flex-1 border-r border-muji-line/70 cursor-pointer hover:bg-muji-surface/60 transition-colors relative grid-cell ${i === HOURS_ARRAY.length - 1 ? 'border-r-0' : ''} z-0`}>
                                                             </div>
                                                         ))}
 
@@ -337,7 +471,7 @@
                                                                      style={getBlockStyle(b.s, b.e)}>
                                                                     <div className="font-semibold text-[13px] truncate w-full flex justify-between items-center">
                                                                         {member?.name.split(' ')[0]}
-                                                                        <svg className="w-3.5 h-3.5 opacity-0 group-hover/block:opacity-100 transition-opacity shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                                        <svg className="w-3.5 h-3.5 opacity-0 group-hover/block:opacity-100 transition-opacity shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                                                     </div>
                                                                     <div className="text-[11px] opacity-90 truncate w-full mt-0.5">{b.note || 'ติดธุระ'}</div>
                                                                 </div>
@@ -350,46 +484,83 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* ขวา: รายการสรุป */}
-                        <div className="w-full xl:w-1/4">
-                            <div className="bg-white rounded-3xl shadow-soft p-5 sm:p-6 h-full min-h-[400px] border border-muji-line/30">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-muji-line/50">
-                                    <h2 className="font-serif text-xl text-muji-ink">สรุปรายการติดธุระ</h2>
-                                    <span className="bg-muji-surface text-muji-ink text-[12px] px-2.5 py-1 rounded-full">{busytimes.length}</span>
+                        {activeTab === 'inventory' && (
+                            <div className="bg-white rounded-3xl shadow-soft p-4 sm:p-6 border border-muji-line/30">
+                                
+                                {/* ส่วนหัวของแท็บ เช็คอุปกรณ์ และปุ่ม เลือกทั้งหมด/ยกเลิกทั้งหมด */}
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-muji-line/40">
+                                    <h2 className="font-serif text-lg md:text-xl text-muji-ink">
+                                        สถานะ: <span className={isAllChecked ? "text-[#4b6a52] font-semibold" : "text-muji-muted"}>{isAllChecked ? 'ครบถ้วนสมบูรณ์' : 'ยังไม่ครบ'}</span>
+                                    </h2>
+                                    <button 
+                                        onClick={toggleAllItems} 
+                                        className={`px-4 py-2 rounded-xl text-[13px] font-medium transition-all shadow-sm flex items-center gap-2 ${
+                                            isAllChecked 
+                                            ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' 
+                                            : 'bg-muji-surface text-muji-ink border border-muji-line/60 hover:bg-[#e9e4d6]'
+                                        }`}>
+                                        {isAllChecked ? (
+                                            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg> ยกเลิกทั้งหมด</>
+                                        ) : (
+                                            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg> เลือกครบทั้งหมด</>
+                                        )}
+                                    </button>
                                 </div>
-                                <div className="space-y-5 overflow-y-auto smooth-scroll max-h-[500px] pr-2">
-                                    {DAYS.map(day => {
-                                        const dayBusys = busytimes.filter(b => b.day === day).sort((a,b) => a.s - b.s);
-                                        if (dayBusys.length === 0) return null;
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {LAB_ITEMS.map((item) => {
+                                        const isChecked = inventoryStatus[item.id] || false;
                                         return (
-                                            <div key={`list-${day}`}>
-                                                <h3 className="text-[13px] font-semibold text-muji-muted mb-2.5">{day}</h3>
-                                                <div className="space-y-2.5">
-                                                    {dayBusys.map(b => {
-                                                        const member = MEMBERS.find(m => m.id === b.person);
-                                                        return (
-                                                            <div key={b.id} onClick={(e) => setCancelTarget(b)}
-                                                                 className="bg-muji-bg rounded-xl p-3 cursor-pointer hover:bg-muji-busyBg/30 transition-colors border border-muji-line/40">
-                                                                <div className="font-medium text-muji-ink text-[14px]">{member?.name}</div>
-                                                                <div className="text-[12.5px] text-muji-muted mt-0.5">{formatTime(b.s)} – {formatTime(b.e)}</div>
-                                                                {b.note && <div className="text-[11.5px] text-muji-busyText bg-muji-busyBg/60 rounded px-2 py-1 mt-2 inline-block">{b.note}</div>}
-                                                            </div>
-                                                        )
-                                                    })}
+                                            <div key={item.id} className={`flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${isChecked ? 'bg-[#f4f6f3] border-[#ccd8ca]' : 'bg-muji-bg border-muji-line/40'}`}>
+                                                <div className="mb-4">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-[11px] font-bold text-muji-muted bg-muji-surface px-2 py-0.5 rounded-md border border-muji-line/50">{item.id}</span>
+                                                        <span className="text-[11px] text-muji-muted">{item.category}</span>
+                                                    </div>
+                                                    <h3 className="font-semibold text-[15px] text-muji-ink mb-1">{item.name}</h3>
+                                                    <div className="text-[13px] text-muji-muted space-y-1">
+                                                        <p>จำนวน: <span className="text-muji-ink font-medium">{item.qty} {item.unit}</span> {item.size !== '-' && `(ขนาด: ${item.size})`}</p>
+                                                        <p>ที่เก็บ: <span className="text-muji-ink">{item.location}</span></p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center justify-between pt-3 border-t border-muji-line/30">
+                                                    <span className={`text-[13px] font-medium ${isChecked ? 'text-[#4b6a52]' : 'text-muji-muted'}`}>
+                                                        {isChecked ? 'ตรวจสอบแล้ว (ครบ)' : 'ยังไม่ตรวจสอบ'}
+                                                    </span>
+                                                    
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only peer" checked={isChecked} onChange={() => toggleItemStatus(item.id)} />
+                                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5c4f41]"></div>
+                                                    </label>
                                                 </div>
                                             </div>
-                                        );
+                                        )
                                     })}
-                                    {busytimes.length === 0 && (
-                                        <div className="text-center text-muji-muted text-[14px] py-16 flex flex-col items-center">
-                                            <svg className="w-10 h-10 mb-3 text-muji-line" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
-                                            ยังไม่มีคนลงชื่อติดธุระ
-                                        </div>
-                                    )}
                                 </div>
                             </div>
+                        )}
+                    </div>
+
+                    <div className="fixed bottom-0 left-0 w-full bg-white border-t border-muji-line/30 shadow-nav z-40 pb-safe">
+                        <div className="max-w-md mx-auto flex">
+                            <button 
+                                onClick={() => setActiveTab('schedule')}
+                                className={`flex-1 py-4 flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'schedule' ? 'text-muji-ink' : 'text-muji-muted hover:text-muji-ink/70'}`}>
+                                {activeTab === 'schedule' && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-muji-ink rounded-b-md"></div>}
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span className="text-[12px] font-medium">ตารางเรียน</span>
+                            </button>
+                            
+                            <button 
+                                onClick={() => setActiveTab('inventory')}
+                                className={`flex-1 py-4 flex flex-col items-center gap-1 transition-colors relative ${activeTab === 'inventory' ? 'text-muji-ink' : 'text-muji-muted hover:text-muji-ink/70'}`}>
+                                {activeTab === 'inventory' && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-muji-ink rounded-b-md"></div>}
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                <span className="text-[12px] font-medium">เช็คไอเทม</span>
+                            </button>
                         </div>
                     </div>
 
@@ -466,7 +637,7 @@
                                 </button>
                                 <div className="mb-6">
                                     <h2 className="font-serif text-2xl text-muji-ink mb-1">ลงเวลาติดธุระ</h2>
-                                    <p className="text-muji-muted text-sm">ระบุช่วงเวลาที่คุณไม่ว่าง</p>
+                                    <p className="text-muji-muted text-[13.5px]">ระบบจะทำการแยกเวลาและข้ามชั่วโมงเรียนให้อัตโนมัติ สามารถเลือกลงเวลายาวๆ ได้เลย</p>
                                 </div>
                                 <form onSubmit={handleSave} className="space-y-4">
                                     {errorMsg && <div className="text-[13px] text-red-600 bg-red-50/80 p-3 rounded-xl flex items-start gap-2">{errorMsg}</div>}
@@ -484,14 +655,19 @@
                                         <div className="flex-[2] flex gap-3">
                                             <div className="flex-1">
                                                 <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">ตั้งแต่</label>
-                                                <select value={modalData.start} onChange={e => setModalData({...modalData, start: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input">
-                                                    {timeOptions.slice(0, -1).map(t => <option key={`s-${t}`} value={t}>{formatTime(t)}</option>)}
+                                                <select value={modalData.start} onChange={handleStartChange} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input text-[14px]">
+                                                    {timeOptions.slice(0, -1).map(t => (
+                                                        <option key={`s-${t}`} value={t}>{formatTime(t)}{getStatusLabel(modalData.day, t, false)}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                             <div className="flex-1">
                                                 <label className="block text-[13px] font-medium text-muji-muted mb-1.5 ml-1">ถึง</label>
-                                                <select value={modalData.end} onChange={e => setModalData({...modalData, end: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input">
-                                                    {timeOptions.slice(1).map(t => <option key={`e-${t}`} value={t}>{formatTime(t)}</option>)}
+                                                <select value={modalData.end} onChange={e => setModalData({...modalData, end: e.target.value})} className="w-full bg-muji-surface text-muji-ink rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-muji-accent/40 minimal-input text-[14px]">
+                                                    {/* แก้บักการเลือกเวลา: แสดงเฉพาะเวลาสิ้นสุดที่มากกว่าเวลาเริ่มต้น */}
+                                                    {timeOptions.filter(t => t > Number(modalData.start)).map(t => (
+                                                        <option key={`e-${t}`} value={t}>{formatTime(t)}{getStatusLabel(modalData.day, t, true)}</option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         </div>
@@ -531,9 +707,12 @@
                 </div>
             );
         }
-
+ 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
 </body>
 </html>
+
+
+```
